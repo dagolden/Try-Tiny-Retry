@@ -42,6 +42,14 @@ subtest 'custom delay function' => sub {
     like( $caught, qr/^ick/, "caught exception when retries failed" );
 };
 
+subtest 'repeating delay is fatal' => sub {
+    eval {
+        retry { fail("shouldn't run") }
+        delay_exp { 3, 10 } delay { return if shift() >= 2; sleep 1 };
+    };
+    like( $@, qr/may not be followed by multiple delay/, "caught expected exception" );
+};
+
 done_testing;
 # COPYRIGHT
 
