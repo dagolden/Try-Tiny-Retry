@@ -155,20 +155,12 @@ Or, you can customize the number of tries and delay timing:
 
 =head1 DESCRIPTION
 
-This module extends Try::Tiny to allow for retrying code several times
-before failing.
-
-=head1 USAGE
+This module extends L<Try::Tiny> to allow for retrying a block of code several
+times before failing.  Otherwise, it works seamlessly like L<Try::Tiny>.
 
 By default, Try::Tiny::Retry exports C<retry> and C<retry_if>, plus C<try>,
-C<catch> and C<finally> from L<Try::Tiny>.  You can optional export C<delay> or
-C<delay_exp>.  Or you can get everything with the C<:all> tag.
-
-If you are also loading L<Try::Tiny> for some reason, just import the functions
-you need:
-
-    use Try::Tiny;
-    use Try::Tiny::Retry qw/retry delay_exp/;
+C<catch> and C<finally> from L<Try::Tiny>.  You can optionally export C<delay>
+or C<delay_exp>.  Or you can get everything with the C<:all> tag.
 
 =func retry
 
