@@ -250,10 +250,10 @@ L<Try::Tiny>.
 * L<Action::Retry> — OO (Moo) or functional; various delay strategies; supports
   conditions
 * L<AnyEvent::Retry> — OO (Moose) and event-driven; various delay strategies
-* L<Attempt> — functional; simple retry constant sleep time
+* L<Attempt> — functional; simple retry count with constant sleep time
 * L<Retry> — OO (Moose) with fixed exponential backoff; supports callbacks
   on every iteration
-* L<Sub::Retry> — functional; simple retry with constant sleep time;
+* L<Sub::Retry> — functional; simple retry count with constant sleep time;
   supports conditions
 
 =cut
