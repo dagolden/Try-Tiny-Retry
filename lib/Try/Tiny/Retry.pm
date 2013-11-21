@@ -7,7 +7,7 @@ package Try::Tiny::Retry;
 # VERSION
 
 use parent 'Exporter';
-our @EXPORT      = qw(retry retry_if);
+our @EXPORT      = qw/retry retry_if try catch finally/;
 our @EXPORT_OK   = ( @EXPORT, qw/delay delay_exp/ );
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
