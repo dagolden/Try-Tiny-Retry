@@ -11,7 +11,6 @@ on 'test' => sub {
   requires "ExtUtils::MakeMaker" => "0";
   requires "File::Spec::Functions" => "0";
   requires "List::Util" => "0";
-  requires "Test::FailWarnings" => "0";
   requires "Test::More" => "0.96";
 };
 

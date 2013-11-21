@@ -2,7 +2,6 @@ use 5.006;
 use strict;
 use warnings;
 use Test::More 0.96;
-use Test::FailWarnings;
 
 subtest "default exports" => sub {
 

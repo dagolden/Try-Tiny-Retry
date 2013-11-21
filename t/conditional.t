@@ -2,7 +2,6 @@ use 5.006;
 use strict;
 use warnings;
 use Test::More 0.96;
-use Test::FailWarnings;
 
 use Try::Tiny::Retry qw/:all/;
 $Try::Tiny::Retry::_DEFAULT_DELAY = 10; # shorten default delay
