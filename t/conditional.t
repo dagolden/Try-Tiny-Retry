@@ -10,34 +10,39 @@ binmode( Test::More->builder->$_, ":utf8" )
 use Try::Tiny::Retry qw/:all/;
 $Try::Tiny::Retry::DEFAULT_DELAY = 10; # shorten default delay
 
-subtest 'default retry and fail' => sub {
+subtest 'conditional not satisfied' => sub {
     my $count  = 0;
     my $caught = '';
     my @err;
     retry {
         pass("try $count");
-        die "ick" if ++$count < 13;
+        $count++;
+        die "ick";
     }
+    retry_if { /^oops/ }
     catch {
         $caught = $_;
     };
-    is( $count, 10, "correct number of retries" );
-    like( $caught, qr/^ick/, "caught exception when retries failed" );
+    is( $count, 1, "correct number of retries" );
+    like( $caught, qr/^ick/, "caught expected error" );
 };
 
-subtest 'default retry and succeed' => sub {
+subtest 'conditional not satisfied' => sub {
     my $count  = 0;
     my $caught = '';
     my @err;
     retry {
         pass("try $count");
-        die "ick" if ++$count < 6;
+        $count++;
+        die "oops" if $count < 6;
+        die "ick"  if $count >= 6;
     }
+    retry_if { /^oops/ }
     catch {
         $caught = $_;
     };
-    is( $count,  6,  "correct number of retries" );
-    is( $caught, "", "no exceptions caught" );
+    is( $count, 6, "correct number of retries" );
+    like( $caught, qr/^ick/, "caught expected error" );
 };
 
 done_testing;

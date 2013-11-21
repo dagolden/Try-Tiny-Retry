@@ -20,6 +20,46 @@ BEGIN {
     eval "use Sub::Name; 1" or *{subname} = sub { 1 }
 }
 
+our $DEFAULT_DELAY = 1e5;
+
+sub delay(&;@) { ## no critic
+    my ( $block, @rest ) = @_;
+    return ( bless( \$block, 'Try::Tiny::Retry::Delay' ), @rest, );
+}
+
+=func delay_exp
+
+    retry { ... }
+    delay_exp [ 3, 10000 ] # 3 tries, 10000 µsec
+    catch { ... };
+
+This function is an exponential-backoff delay-function generator.  The delay
+between attempts is randomly selected between 0 and an upper bound. The upper
+bound doubles after each failure.
+
+It requires an array reference as an argument. The first element is the number
+of tries allowed.  The second element is the starting upper bound in
+microseconds.
+
+Given number of tries C<N> and upper bound C<U>, the expected cumulative
+delay time if all attempts fail is C<0.5 * U * ( 2^(N-1) - 1 )>.
+
+=cut
+
+sub delay_exp(&;@) { ## no critic
+    my ( $params, @rest ) = @_;
+##    croak "delay_exp requires an array reference argument"
+##      unless ref($params) eq 'ARRAY';
+    my ( $n, $scale ) = $params->();
+
+    require Time::HiRes;
+
+    return delay {
+        return if $_[0] >= $n;
+        Time::HiRes::usleep( int rand( $scale * ( 1 << ( $_[0] - 1 ) ) ) );
+    }, @rest;
+}
+
 sub retry(&;@) { ## no critic
     my ( $try, @code_refs ) = @_;
 
@@ -50,7 +90,7 @@ sub retry(&;@) { ## no critic
 
     # Default retry 10 times with 100 msec exponential backoff
     if ( !defined $delay ) {
-        my ($code_ref) = delay_exp( [ 10, 100000 ] );
+        my ($code_ref) = delay_exp { 10, $DEFAULT_DELAY };
         $delay = $$code_ref;
     }
 
@@ -76,7 +116,12 @@ sub retry(&;@) { ## no critic
                 my $err = $_;
                 # if there are conditions, rethrow unless at least one is met
                 if (@conditions) {
-                    die $err unless grep { $_->($err) } @conditions;
+                    my $met = 0;
+                    for my $c (@conditions) {
+                        local $_ = $err; # protect from modification
+                        $met++ if $c->();
+                    }
+                    die $err unless $met;
                 }
                 # rethow if delay function signals stop with undef
                 my $continue = eval { $delay->($count) };
@@ -96,45 +141,6 @@ sub retry_if(&;@) { ## no critic
     my ( $block, @rest ) = @_;
     return ( bless( \$block, 'Try::Tiny::Retry::RetryIf' ), @rest, );
 }
-
-sub delay(&;@) {    ## no critic
-    my ( $block, @rest ) = @_;
-    return ( bless( \$block, 'Try::Tiny::Retry::Delay' ), @rest, );
-}
-
-=func delay_exp
-
-    retry { ... }
-    delay_exp [ 3, 10000 ] # 3 tries, 10000 µsec
-    catch { ... };
-
-This function is an exponential-backoff delay-function generator.  The delay
-between attempts is randomly selected between 0 and an upper bound. The upper
-bound doubles after each failure.
-
-It requires an array reference as an argument. The first element is the number
-of tries allowed.  The second element is the starting upper bound in
-microseconds.
-
-Given number of tries C<N> and upper bound C<U>, the expected cumulative
-delay time if all attempts fail is C<0.5 * U * ( 2^(N-1) - 1 )>.
-
-=cut
-
-sub delay_exp($;@) { ## no critic
-    my ( $params, @rest ) = @_;
-    croak "delay_exp requires an array reference argument"
-      unless ref($params) eq 'ARRAY';
-    my ( $n, $scale ) = @$params;
-
-    require Time::HiRes;
-
-    return delay {
-        return if $_[0] >= $n;
-        Time::HiRes::usleep( int rand( $scale * ( 1 << ( $_[0] - 1 ) ) ) );
-    }, @rest;
-}
-
 1;
 
 =for Pod::Coverage BUILD
