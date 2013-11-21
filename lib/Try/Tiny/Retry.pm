@@ -100,7 +100,7 @@ sub retry(&;@) { ## no critic
                     my $met = 0;
                     for my $c (@conditions) {
                         local $_ = $err; # protect from modification
-                        $met++ if $c->();
+                        $met++ if $c->($count);
                     }
                     die $err unless $met;
                 }
@@ -202,6 +202,16 @@ return a true value if a retry should be attempted.
 
 Multiple C<retry_if> blocks may be provided.  Only one needs to evaluate
 to true to enable a retry.
+
+Using a C<retry_if> block based on the retry count is an alternate way to allow
+B<fewer> (but not greater) tries than the default C<delay> function, but with
+the default exponential backoff behavior.  These are effectively equivalent:
+
+    retry     { ... }
+    retry_if  { shift() < 3 };
+
+    retry     { ... }
+    delay_exp { 3, 1e5 };
 
 =func delay
 

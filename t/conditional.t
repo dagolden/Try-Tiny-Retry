@@ -42,6 +42,23 @@ subtest 'conditional not satisfied' => sub {
     like( $caught, qr/^ick/, "caught expected error" );
 };
 
+subtest 'conditional gets count' => sub {
+    my $count  = 0;
+    my $caught = '';
+    my @err;
+    retry {
+        pass("try $count");
+        $count++;
+        die "ick";
+    }
+    retry_if { shift() < 3 }
+    catch {
+        $caught = $_;
+    };
+    is( $count, 3, "correct number of retries" );
+    like( $caught, qr/^ick/, "caught expected error" );
+};
+
 done_testing;
 # COPYRIGHT
 
