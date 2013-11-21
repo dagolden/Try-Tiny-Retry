@@ -102,6 +102,25 @@ sub delay(&;@) {    ## no critic
     return ( bless( \$block, 'Try::Tiny::Retry::Delay' ), @rest, );
 }
 
+=func delay_exp
+
+    retry { ... }
+    delay_exp [ 3, 10000 ] # 3 tries, 10000 µsec
+    catch { ... };
+
+This function is an exponential-backoff delay-function generator.  The delay
+between attempts is randomly selected between 0 and an upper bound. The upper
+bound doubles after each failure.
+
+It requires an array reference as an argument. The first element is the number
+of tries allowed.  The second element is the starting upper bound in
+microseconds.
+
+Given number of tries C<N> and upper bound C<U>, the expected cumulative
+delay time if all attempts fail is C<0.5 * U * ( 2^(N-1) - 1 )>.
+
+=cut
+
 sub delay_exp($;@) { ## no critic
     my ( $params, @rest ) = @_;
     croak "delay_exp requires an array reference argument"
@@ -126,12 +145,10 @@ sub delay_exp($;@) { ## no critic
 
 =head1 DESCRIPTION
 
-This module might be cool, but you'd never know it from the lack
-of documentation.
+This module extends Try::Tiny to allow for retrying code several times
+before failing.
 
 =head1 USAGE
-
-Good luck!
 
 =head1 SEE ALSO
 
