@@ -27,11 +27,14 @@ sub delay(&;@) {           ## no critic
     return ( bless( \$block, 'Try::Tiny::Retry::Delay' ), @rest, );
 }
 
+sub retry_if(&;@) {        ## no critic
+    my ( $block, @rest ) = @_;
+    return ( bless( \$block, 'Try::Tiny::Retry::RetryIf' ), @rest, );
+}
+
 sub delay_exp(&;@) {       ## no critic
-    my ( $params, @rest ) = @_;
-##    croak "delay_exp requires an array reference argument"
-##      unless ref($params) eq 'ARRAY';
-    my ( $n, $scale ) = $params->();
+    my ( $params, @rest )  = @_;
+    my ( $n,      $scale ) = $params->();
 
     require Time::HiRes;
 
@@ -41,20 +44,20 @@ sub delay_exp(&;@) {       ## no critic
     }, @rest;
 }
 
-sub retry(&;@) { ## no critic
+sub retry(&;@) {           ## no critic
     my ( $try, @code_refs ) = @_;
 
     # name the block if we have Sub::Name
     my $caller = caller;
     subname( "${caller}::retry {...} " => $try );
 
-    my ( $delay, @conditions, @rest );
-
-    # we need to save this here, the eval block will be in scalar context due
-    # to $failed
+    # we need to save this here to ensure retry block is evaluted correctly
     my $wantarray = wantarray;
 
     # find labeled blocks in the argument list: retry_if and delay tag by blessing
+    # a scalar reference to the code block reference
+    my ( $delay, @conditions, @rest );
+
     foreach my $code_ref (@code_refs) {
         if ( ref($code_ref) eq 'Try::Tiny::Retry::RetryIf' ) {
             push @conditions, $$code_ref;
@@ -69,12 +72,13 @@ sub retry(&;@) { ## no critic
         }
     }
 
-    # Default retry 10 times with 100 msec exponential backoff
+    # default retry 10 times with default exponential backoff
     if ( !defined $delay ) {
         my ($code_ref) = delay_exp { 10, $_DEFAULT_DELAY };
         $delay = $$code_ref;
     }
 
+    # execute code block and retry as necessary
     my @ret;
     my $retry = sub {
         my $count = 0;
@@ -105,9 +109,8 @@ sub retry(&;@) { ## no critic
                     die $err unless $met;
                 }
                 # rethow if delay function signals stop with undef
-                my $continue = eval { $delay->($count) };
-                die $@ if $@;
-                die $err unless defined $continue;
+                die $err unless defined $delay->($count);
+                # if here, then we want to try again
                 $redo++;
             };
             redo RETRY if $redo;
@@ -115,13 +118,10 @@ sub retry(&;@) { ## no critic
         return $wantarray ? @ret : $ret[0];
     };
 
-    return try( \&$retry, @rest );
+    # call "&try" to bypass the prototype check
+    return &try( $retry, @rest );
 }
 
-sub retry_if(&;@) { ## no critic
-    my ( $block, @rest ) = @_;
-    return ( bless( \$block, 'Try::Tiny::Retry::RetryIf' ), @rest, );
-}
 1;
 
 =for Pod::Coverage BUILD
