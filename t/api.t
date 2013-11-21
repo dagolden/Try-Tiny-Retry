@@ -1,11 +1,8 @@
-use 5.008001;
+use 5.006;
 use strict;
 use warnings;
 use Test::More 0.96;
 use Test::FailWarnings;
-use Test::Fatal;
-binmode( Test::More->builder->$_, ":utf8" )
-  for qw/output failure_output todo_output/;
 
 subtest "default exports" => sub {
 
