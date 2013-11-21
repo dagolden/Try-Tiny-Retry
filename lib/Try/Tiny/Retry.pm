@@ -141,7 +141,30 @@ sub delay_exp($;@) { ## no critic
 
 =head1 SYNOPSIS
 
+Use just like L<Try::Tiny>, but with C<retry> instead of C<try>. By default,
+C<retry> will try 10 times with exponential backoff:
+
     use Try::Tiny::Retry;
+
+    retry   { ... }
+    catch   { ... }
+    finally { ... };
+
+Or, you can retry only if the error matches some conditions:
+
+    use Try::Tiny::Retry;
+
+    retry   { ... }
+    retry_if { /could not connect/ }
+    catch { ... };
+
+Or, you can customize the number of tries and delay timing:
+
+    use Try::Tiny::Retry ':all';
+
+    retry       { ... }
+    delay_exp   [ 5, 1e6 ] # 5 tries, 1 second exponential-backoff
+    catch       { ... };
 
 =head1 DESCRIPTION
 
@@ -150,10 +173,30 @@ before failing.
 
 =head1 USAGE
 
+By default, Try::Tiny::Retry exports C<retry> and C<retry_if>, plus C<try>,
+C<catch> and C<finally> from L<Try::Tiny>.  You can optional export C<delay> or
+C<delay_exp>.  Or you can get everything with the C<:all> tag.
+
+If you are also loading L<Try::Tiny> for some reason, just import the functions
+you need:
+
+    use Try::Tiny;
+    use Try::Tiny::Retry qw/retry delay_exp/;
+
 =head1 SEE ALSO
 
+There are other retry modules on CPAN, but none of them worked seamlessly with
+L<Try::Tiny>.
+
 =for :list
-* Maybe other modules do related things.
+* L<Action::Retry> — OO (Moo) or functional; various delay strategies; supports
+  conditions
+* L<AnyEvent::Retry> — OO (Moose) and event-driven; various delay strategies
+* L<Attempt> — functional; simple retry constant sleep time
+* L<Retry> — OO (Moose) with fixed exponential backoff; supports callbacks
+  on every iteration
+* L<Sub::Retry> — functional; simple retry with constant sleep time;
+  supports conditions
 
 =cut
 
