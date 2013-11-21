@@ -7,8 +7,9 @@ package Try::Tiny::Retry;
 # VERSION
 
 use parent 'Exporter';
-our @EXPORT = qw(retry retry_if);
-our @EXPORT_OK = ( @EXPORT, qw/delay delay_exp/ );
+our @EXPORT      = qw(retry retry_if);
+our @EXPORT_OK   = ( @EXPORT, qw/delay delay_exp/ );
+our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
 use Carp;
 $Carp::Internal{ +__PACKAGE__ }++;
@@ -35,24 +36,30 @@ sub retry(&;@) { ## no critic
     # find labeled blocks in the argument list: retry_if and delay tag by blessing
     foreach my $code_ref (@code_refs) {
         if ( ref($code_ref) eq 'Try::Tiny::Retry::RetryIf' ) {
-            push @conditions, $code_ref;
+            push @conditions, $$code_ref;
         }
         elsif ( ref($code_ref) eq 'Try::Tiny::Retry::Delay' ) {
             croak 'A retry() may not be followed by multiple delay blocks'
               if $delay;
-            $delay = $code_ref;
+            $delay = $$code_ref;
         }
         else {
             push @rest, $code_ref;
         }
     }
 
-    $delay ||= delay_exp( [ 10, 100 ] ); # 10 times with 100 msec slot size
+    # Default retry 10 times with 100 msec exponential backoff
+    if ( !defined $delay ) {
+        my ($code_ref) = delay_exp( [ 10, 100000 ] );
+        $delay = $$code_ref;
+    }
 
     my @ret;
     my $retry = sub {
         my $count = 0;
-        while ( $count++ ) {
+        RETRY: {
+            $count++;
+            my $redo;
             try {
                 # evaluate the try block in the correct context
                 if ($wantarray) {
@@ -72,8 +79,12 @@ sub retry(&;@) { ## no critic
                     die $err unless grep { $_->($err) } @conditions;
                 }
                 # rethow if delay function signals stop with undef
-                die $err unless defined $delay->($count);
+                my $continue = eval { $delay->($count) };
+                die $@ if $@;
+                die $err unless defined $continue;
+                $redo++;
             };
+            redo RETRY if $redo;
         }
         return $wantarray ? @ret : $ret[0];
     };
@@ -99,12 +110,10 @@ sub delay_exp($;@) { ## no critic
 
     require Time::HiRes;
 
-    my $delay = sub {
-        return if $_[0] > $n;
+    return delay {
+        return if $_[0] >= $n;
         Time::HiRes::usleep( int rand( $scale * ( 1 << ( $_[0] - 1 ) ) ) );
-    };
-
-    return delay( \&$delay, @rest );
+    }, @rest;
 }
 
 1;
