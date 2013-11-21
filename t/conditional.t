@@ -5,7 +5,7 @@ use Test::More 0.96;
 use Test::FailWarnings;
 
 use Try::Tiny::Retry qw/:all/;
-$Try::Tiny::Retry::DEFAULT_DELAY = 10; # shorten default delay
+$Try::Tiny::Retry::_DEFAULT_DELAY = 10; # shorten default delay
 
 subtest 'conditional not satisfied' => sub {
     my $count  = 0;

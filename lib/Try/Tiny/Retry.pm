@@ -20,14 +20,14 @@ BEGIN {
     eval "use Sub::Name; 1" or *{subname} = sub { 1 }
 }
 
-our $DEFAULT_DELAY = 1e5;
+our $_DEFAULT_DELAY = 1e5; # to override for testing
 
-sub delay(&;@) { ## no critic
+sub delay(&;@) {           ## no critic
     my ( $block, @rest ) = @_;
     return ( bless( \$block, 'Try::Tiny::Retry::Delay' ), @rest, );
 }
 
-sub delay_exp(&;@) { ## no critic
+sub delay_exp(&;@) {       ## no critic
     my ( $params, @rest ) = @_;
 ##    croak "delay_exp requires an array reference argument"
 ##      unless ref($params) eq 'ARRAY';
@@ -71,7 +71,7 @@ sub retry(&;@) { ## no critic
 
     # Default retry 10 times with 100 msec exponential backoff
     if ( !defined $delay ) {
-        my ($code_ref) = delay_exp { 10, $DEFAULT_DELAY };
+        my ($code_ref) = delay_exp { 10, $_DEFAULT_DELAY };
         $delay = $$code_ref;
     }
 
@@ -240,8 +240,6 @@ allowed.  The second element is the starting upper bound in B<microseconds>.
 
 Given number of tries C<N> and upper bound C<U>, the expected cumulative
 delay time if all attempts fail is C<0.5 * U * ( 2^(N-1) - 1 )>.
-
-=cut
 
 =head1 SEE ALSO
 
