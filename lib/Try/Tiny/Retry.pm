@@ -7,7 +7,7 @@ package Try::Tiny::Retry;
 # VERSION
 
 use parent 'Exporter';
-our @EXPORT      = qw/retry retry_if try catch finally/;
+our @EXPORT      = qw/retry retry_if on_retry try catch finally/;
 our @EXPORT_OK   = ( @EXPORT, qw/delay delay_exp/ );
 our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 
@@ -25,6 +25,11 @@ our $_DEFAULT_DELAY = 1e5; # to override for testing
 sub delay(&;@) {           ## no critic
     my ( $block, @rest ) = @_;
     return ( bless( \$block, 'Try::Tiny::Retry::Delay' ), @rest, );
+}
+
+sub on_retry(&;@) {        ## no critic
+    my ( $block, @rest ) = @_;
+    return ( bless( \$block, 'Try::Tiny::Retry::OnRetry' ), @rest, );
 }
 
 sub retry_if(&;@) {        ## no critic
@@ -56,11 +61,16 @@ sub retry(&;@) {           ## no critic
 
     # find labeled blocks in the argument list: retry_if and delay tag by blessing
     # a scalar reference to the code block reference
-    my ( $delay, @conditions, @rest );
+    my ( $delay, $on_retry, @conditions, @rest );
 
     foreach my $code_ref (@code_refs) {
         if ( ref($code_ref) eq 'Try::Tiny::Retry::RetryIf' ) {
             push @conditions, $$code_ref;
+        }
+        elsif ( ref($code_ref) eq 'Try::Tiny::Retry::OnRetry' ) {
+            croak 'A retry() may not be followed by multiple on_retry blocks'
+              if $on_retry;
+            $on_retry = $$code_ref;
         }
         elsif ( ref($code_ref) eq 'Try::Tiny::Retry::Delay' ) {
             croak 'A retry() may not be followed by multiple delay blocks'
@@ -113,6 +123,7 @@ sub retry(&;@) {           ## no critic
                 # if here, then we want to try again
                 $redo++;
             };
+            $on_retry->($count) if defined $on_retry && $redo;
             redo RETRY if $redo;
         }
         return $wantarray ? @ret : $ret[0];
@@ -133,11 +144,11 @@ C<retry> will try 10 times with exponential backoff:
 
     use Try::Tiny::Retry;
 
-    retry   { ... }
-    catch   { ... }
-    finally { ... };
+    retry     { ... }
+    catch     { ... }
+    finally   { ... };
 
-Or, you can retry only if the error matches some conditions:
+You can retry only if the error matches some conditions:
 
     use Try::Tiny::Retry;
 
@@ -145,13 +156,21 @@ Or, you can retry only if the error matches some conditions:
     retry_if  { /^could not connect/ }
     catch     { ... };
 
-Or, you can customize the number of tries and delay timing:
+You can customize the number of tries and delay timing:
 
     use Try::Tiny::Retry ':all';
 
-    retry       { ... }
-    delay_exp   { 5, 1e6 } # 5 tries, 1 second exponential-backoff
-    catch       { ... };
+    retry     { ... }
+    delay_exp { 5, 1e6 } # 5 tries, 1 second exponential-backoff
+    catch     { ... };
+
+You can run some code before each retry:
+
+    use Try::Tiny::Retry;
+
+    retry     { ... }
+    on_retry  { ... }
+    catch     { ... };
 
 =head1 DESCRIPTION
 
@@ -204,6 +223,18 @@ the default exponential backoff behavior.  These are effectively equivalent:
 
     retry     { ... }
     delay_exp { 3, 1e5 };
+
+=func on_retry
+
+    retry    { ... }
+    on_retry { $state->reset() }
+    catch    { ... };
+
+The C<on_retry> block runs before each C<retry> block after the first attempt.
+The block is passed the cumulative number of attempts as an argument.  The
+return value is ignored.
+
+Only one C<on_retry> block is allowed.
 
 =func delay
 

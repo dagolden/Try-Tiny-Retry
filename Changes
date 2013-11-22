@@ -2,6 +2,11 @@ Revision history for Try-Tiny-Retry
 
 {{$NEXT}}
 
+    [ADDED]
+
+    - 'on_retry' function added to provide a block to be run
+      before each attempt after the first
+
 0.001     2013-11-21 17:18:19 America/New_York
 
     - First release
