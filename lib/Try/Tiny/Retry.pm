@@ -56,7 +56,7 @@ sub retry(&;@) {           ## no critic
     my $caller = caller;
     subname( "${caller}::retry {...} " => $try );
 
-    # we need to save this here to ensure retry block is evaluted correctly
+    # we need to save this here to ensure retry block is evaluated correctly
     my $wantarray = wantarray;
 
     # find labeled blocks in the argument list: retry_if and delay tag by blessing
