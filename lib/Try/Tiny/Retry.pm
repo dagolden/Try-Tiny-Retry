@@ -224,6 +224,13 @@ the default exponential backoff behavior.  These are effectively equivalent:
     retry     { ... }
     delay_exp { 3, 1e5 };
 
+If you wish the exception to be rethrown if all C<retry_if> blocks return
+false, you must use a C<catch> block to do so:
+
+    retry    { ... }
+    retry_if { /^could not connect/ }
+    catch    { die $_ };
+
 =func on_retry
 
     retry    { ... }
