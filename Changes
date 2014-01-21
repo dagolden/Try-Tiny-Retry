@@ -2,6 +2,10 @@ Revision history for Try-Tiny-Retry
 
 {{$NEXT}}
 
+    [DOCUMENTED]
+
+    - Clarified behavior of 'retry_if' and 'delay' blocks
+
 0.002     2013-11-22 14:21:01 America/New_York
 
     [ADDED]
