@@ -192,8 +192,10 @@ The C<retry> function works just like C<try> from L<Try::Tiny>, except that if
 an exception is thrown, the block may be executed again, depending on the
 C<retry_if> and C<delay> blocks.
 
-By default, if no C<retry_if> blocks are provided, retries depend only on
-the C<delay> block.
+If one or more C<retry_if> blocks are provided, as long as any of them evaluate
+to true, a retry will be attempted unless the result of the C<delay> block
+indicates otherwise.  If none of them evaluate to true, no retry will be
+attempted and the C<delay> block will not be called.
 
 If no C<delay> block is provided, the default will be 10 tries with a random
 delay up to 100 milliseconds with an exponential backoff.  (See L</delay_exp>.)
@@ -205,7 +207,8 @@ This has an expected cumulative delay of around 25 seconds if all retries fail.
     retry_if { /^could not connect/ }
     catch    { ... };
 
-A C<retry_if> block controls whether a retry should be attempted.
+A C<retry_if> block controls whether a retry should be attempted after an
+exception (assuming there are any retry attempts remaining).
 
 The block is passed the cumulative number of attempts as an argument.  The
 exception caught is provided in C<$_>, just as with C<catch>.  It should
@@ -252,13 +255,18 @@ Only one C<on_retry> block is allowed.
     }
     catch { ... };
 
-The C<delay> block is executed when the C<retry> block throws an exception
-to determine if a retry should be attempted and to manage the delay between
+The C<delay> block controls the number of attempts and the delay between
 attempts.
 
 The block is passed the cumulative number of attempts as an argument.  If the
-C<delay> block returns an undefined value, no further retries will be made and
-the most recent exception will be rethrown.
+C<delay> block returns an undefined value, no further retries will be made.
+
+If you wish the exception to be rethrown if all attempts fail, you must use a
+C<catch> block to do so:
+
+    retry    { ... }
+    delay    { ... }
+    catch    { die $_ };
 
 Only one C<delay> block is allowed.
 
