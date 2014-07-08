@@ -2,6 +2,10 @@ Revision history for Try-Tiny-Retry
 
 {{$NEXT}}
 
+    [ADDED]
+
+    - 'on_retry' function gets error in $_
+
 0.003     2014-01-21 13:27:40-05:00 America/New_York
 
     [DOCUMENTED]

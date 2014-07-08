@@ -7,14 +7,16 @@ use Try::Tiny::Retry qw/:all/;
 $Try::Tiny::Retry::_DEFAULT_DELAY = 10; # shorten default delay
 
 subtest 'default retry and fail' => sub {
-    my $count    = 0;
-    my $caught   = '';
-    my $on_retry = 0;
+    my $count        = 0;
+    my $caught       = '';
+    my $on_retry     = 0;
+    my $on_retry_err = '';
     retry {
         pass("try $count");
         die "ick" if ++$count < 13;
     }
     on_retry {
+        $on_retry_err = $_;
         $on_retry++;
     }
     catch {
@@ -22,7 +24,8 @@ subtest 'default retry and fail' => sub {
     };
     is( $count,    10, "correct number of retries" );
     is( $on_retry, 9,  "correct number of on_retry blocks run" );
-    like( $caught, qr/^ick/, "caught exception when retries failed" );
+    like( $caught,       qr/^ick/, "caught exception when retries failed" );
+    like( $on_retry_err, qr/^ick/, "on_retry has error in \$_" );
 };
 
 subtest 'default retry and succeed' => sub {
